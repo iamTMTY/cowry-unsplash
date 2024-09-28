@@ -4,7 +4,7 @@ import Skeleton from 'components/Skeleton.vue'
 import ImageModal from 'components/ImageModal.vue'
 import { ImageType } from 'types';
 import api from 'utilities/api';
-import {ref, onBeforeMount, watch} from 'vue'
+import {ref, onBeforeMount} from 'vue'
 
   const PAGE_SIZE = 20
   const SKELETON_COUNT = new Array(PAGE_SIZE).fill('skeleton')
@@ -59,7 +59,7 @@ import {ref, onBeforeMount, watch} from 'vue'
         <input type="text" class="search_input" placeholder="search for photo" :onkeypress="handleSearch" />
       </div>
       <div class="grid">
-        <template v-for="(s,i) in SKELETON_COUNT" :key="'skeleton'+i" v-if="isLoading">
+        <template v-for="(_s,_i) in SKELETON_COUNT" :key="'skeleton'+_i" v-if="isLoading">
           <Skeleton />
         </template>
         <template v-for="image in images" :key="image.id" v-if="!isLoading">
