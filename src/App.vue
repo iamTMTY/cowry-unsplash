@@ -37,7 +37,7 @@ import {ref, onBeforeMount} from 'vue'
   }
 
   const handleSearch = (event?: KeyboardEvent) => {
-    if(event && event.code === 'Enter') {
+    if(event && event.key === 'Enter') {
       const query = (event.target as HTMLInputElement).value
       setSearch(query)
     }
