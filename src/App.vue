@@ -9,11 +9,13 @@ import { useScroll } from '@vueuse/core'
 
   const PAGE_SIZE = 20
   const SKELETONS = new Array(PAGE_SIZE).fill('skeleton')
+  const isLoading = ref(false)
   const images = ref<Array<ImageType | 'skeleton'>>([])
   const modalData = ref<ImageType>()
   const search = ref('')
   const page = ref(1)
   const totalPages = ref(0)
+  const errorMessage = ref('')
 
   const showModal = (image: ImageType) => {
     modalData.value = image
@@ -21,18 +23,22 @@ import { useScroll } from '@vueuse/core'
 
   const getImages = async (query?: string) => {
     try {
+      errorMessage.value = ''
+      isLoading.value = true
       images.value = images.value.concat(SKELETONS)
       const url = query ? `/search/photos?query=${query}&page=${page.value}&per_page=${PAGE_SIZE}` : `/photos?page=${page.value}&per_page=${PAGE_SIZE}`
       let res = await api.get(url)
-      if(res.status === 200) {
-        const data = res.data?.results || res?.data || []
-        const end = (page.value - 1) * PAGE_SIZE
-        images.value = [...images.value.slice(0, end), ...data]
-        totalPages.value = !!search ? res.data?.results?.total_pages || 0 : 0
-      }
-    } catch (error) {
-      
+      const data = res.data?.results || res?.data || []
+      const end = (page.value - 1) * PAGE_SIZE
+      images.value = [...images.value.slice(0, end), ...data]
+      totalPages.value = !!search ? res.data?.total_pages || 0 : 0
+    } catch (error: any) {
+      const end = (page.value - 1) * PAGE_SIZE
+      const existingImages = images.value.slice(0, end)
+      images.value = [...existingImages]
+      errorMessage.value = 'error loading data'
     }
+    isLoading.value = false
   } 
 
   const { arrivedState } = useScroll(document, {
@@ -44,7 +50,7 @@ import { useScroll } from '@vueuse/core'
 })
 
 watch(arrivedState, (state) => {
-  if(state.bottom && (!totalPages.value || page.value < totalPages.value)) {
+  if(state.bottom && !isLoading.value && !errorMessage.value && (!totalPages.value || page.value < totalPages.value)) {
     page.value = page.value + 1
     getImages(search.value)
   }
@@ -69,7 +75,7 @@ watch(arrivedState, (state) => {
     }
   }
 
-  const getIsLoading = (data: ImageType | 'skeleton') => {
+  const getIsSkeleton = (data: ImageType | 'skeleton') => {
     return data === 'skeleton'
   }
 
@@ -90,9 +96,16 @@ watch(arrivedState, (state) => {
       </div>
       <div class="grid">
         <template v-for="(image, _i) in images" :key="'image' + _i">
-          <Skeleton v-if="getIsLoading(image)" />
-          <ImageCard v-else="getIsLoading(image)" :data="image" :open="() => showModal(image)"/>
+          <Skeleton v-if="getIsSkeleton(image)" />
+          <ImageCard v-else="getIsSkeleton(image)" :data="image" :open="() => showModal(image)"/>
         </template>
+      </div>
+      <div class="error_container" v-if="!!errorMessage">
+        <p class="error_message">{{ errorMessage }}</p>
+        <button class="error_button" :onclick="() => getImages(search)">
+          <img src="./assets/reload.svg" class="reload_icon" alt="reload" />
+          <span>Retry</span>
+        </button>
       </div>
     </div>
   </div>
@@ -182,6 +195,30 @@ watch(arrivedState, (state) => {
 
 .grid > :nth-child(2n) {
   grid-row: span 8;
+}
+
+.error_button {
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  align-items: center;
+  border: none;
+  background: transparent;
+  padding: 4px 16px;
+  margin: 4px auto 0px;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.error_button:hover {
+  background: rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+.reload_icon {
+  width: 1rem;
+  height: 1rem;
 }
 
 @media only screen and (min-width: 600px) {
